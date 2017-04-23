@@ -9,6 +9,8 @@ from random import randint
 
 logging.basicConfig()
 LOG = logging.getLogger(__name__)
+hdlr = logging.FileHandler('./'+__name__+'.log')
+LOG.addHandler(hdlr)
 LOG.setLevel(logging.INFO)      
 
 NUMBER_OF_NODES=200
@@ -122,33 +124,19 @@ if __name__ == '__main__':
     """
 
     G1=G.copy()
-    D=Init_Tansactions(G1,N, E)
-    E_P=Edge_Tran(D, E)
-    LOG.info('Playing Game')
-    G1,E,N=Play_Game(G1,N,E_P)
-    LOG.info('Edges:' + str(len(E)))
+    E1=None
+
+    while (1):
+        if E1 == E:
+            break
+        E1=E
+        D=Init_Tansactions(G1,N, E)
+        E_P=Edge_Tran(D, E)
+        LOG.info('Playing Game')
+        G1,E,N=Play_Game(G1,N,E_P)
+        LOG.info('Edges:' + str(len(E)))
 
 
-
-    D=Init_Tansactions(G1,N, E)
-    E_P=Edge_Tran(D, E)
-    LOG.info('Playing Game')
-    G1,E,N=Play_Game(G1,N,E_P)
-    LOG.info('Edges:' + str(len(E)))
-    
-
-    D=Init_Tansactions(G1,N, E)
-    E_P=Edge_Tran(D, E)
-    LOG.info('Playing Game')
-    G1,E,N=Play_Game(G1,N,E_P)
-    LOG.info('Edges:' + str(len(E)))
-
-
-    D=Init_Tansactions(G1,N, E)
-    E_P=Edge_Tran(D, E)
-    LOG.info('Playing Game')
-    G1,E,N=Play_Game(G1,N,E_P)
-    LOG.info('Edges:' + str(len(E)))
 
     f, (ax1, ax2) = plt.subplots(1, 2)
     plt.figure(1)
