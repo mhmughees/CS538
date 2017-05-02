@@ -1,6 +1,6 @@
 #/usr/bin/python
 
-import logging,itertools
+import logging,itertools,os
 import networkx as nx
 import matplotlib.pyplot as plt
 from random import randint
@@ -18,15 +18,19 @@ No node can send transactions worth more than his total bitcoins.
 
 logging.basicConfig()
 LOG = logging.getLogger(__name__)
-hdlr = logging.FileHandler('./'+__name__+'.log')
+try:
+    os.remove('./ligh_network.log')
+except OSError:
+    pass
+hdlr = logging.FileHandler('./ligh_network.log')
 LOG.addHandler(hdlr)
 LOG.setLevel(logging.INFO)      
 
 
 NUMBER_OF_NODES=100
-PPROB_OF_EDGE=0.01 # very low otherwise there will be always path
-PER_NODE_TRANSACS=50
-MAX_BITCOINS=100
+PPROB_OF_EDGE=0.005 # very low otherwise there will be always path
+PER_NODE_TRANSACS=100
+MAX_BITCOINS=50
 G=None # Given Directed Graph  
 E=None # Edges [(u,v)]
 N=None # Nodes [List]
@@ -75,7 +79,7 @@ def Init_Tansactions(B,N):
     		if u==v:
     			D[u][u]=0
     		else:
-    			t_amount=randint(0,MAX_BITCOINS/4)
+    			t_amount=randint(0,MAX_BITCOINS/8)
     			if  D[u][v]==0 and B_temp[u]-t_amount>0:
     				D[u][v]=t_amount
     				B_temp[u]=B_temp[u]-t_amount
@@ -134,7 +138,7 @@ def Channel_Val_Util(G,N,E,D,f,D_NP):
 					except:
 						continue
 				
-				U[i,j]= C_Val[i][j][3]-(C_Val[i][j][4])+C_Val[i][j][0]+len(G.neighbors(j))
+				U[i,j]= C_Val[i][j][3]-(C_Val[i][j][4])+C_Val[i][j][0]+(len(G.neighbors(j)) if C_Val[i][j][0]>0 else 0)
 
 		
 
@@ -143,7 +147,7 @@ def Channel_Val_Util(G,N,E,D,f,D_NP):
 	
 
 
-def Play_Add(G,N,B,U,C_Val):
+def Play_Add(G,N,B,U,C_Val,Path_E):
 	for i in N:
 			max_u= np.sort(U[i,:])
 			max_u= max_u[::-1]
@@ -153,6 +157,8 @@ def Play_Add(G,N,B,U,C_Val):
 				j= U[i,:].tolist().index(max_u[m])
 				cost=C_Val[i][j][0]+C_Val[i][j][2]
 				if U[i,j]>0 and cost<B[i]:
+					if Path_E[i][j]==[]:
+						print i,j,C_Val[i][j][3],(C_Val[i][j][4]),C_Val[i][j][0],len(G.neighbors(j)),U[i,j]
 					G.add_edge(i, j)
 					B[i]=B[i]-cost
 				m=m+1
@@ -162,15 +168,16 @@ def Play_Add(G,N,B,U,C_Val):
 	return G,B
 				
 def Play_Remove(G,Path_E,U,C_Val,B):
+
 	for i in N:
-		for j in N:
-			if C_Val[i][j][0]==0 and C_Val[i][j][3]>0:
-				 	try:
-				 		G.remove_edge(i,j)
-				 		if U[i,j]>0 and cost<B[i]:
-				 			B[i]=B[i]+C_Val[i][j][3]
-				 	except:
-				 		continue
+		pred=G.predecessors(i)
+		for j in pred:
+
+			cost=C_Val[j][i][0]+C_Val[j][i][2]
+			if C_Val[j][i][1]==0 and cost > B[i]:
+				G.remove_edge(j, i)
+				B[j]+cost
+
 	LOG.info('Remove Played')
 	return G
 	
@@ -187,17 +194,20 @@ if __name__ == '__main__':
 	"""
 
 	E=0
+	r=0
 	while E!=G_1.edges():
+		LOG.info('Game Round: '+str(r))
+		r=r+1
 		E=G_1.edges()
 		D_NP= Check_Paths(G_1, N, D)
 		C_Val,U,Path_E=Channel_Val_Util(G_1, N, G_1.edges(), D,f, D_NP)
-		G_1,B_1=Play_Add(G_1, N, B, U, C_Val)
+		G_1,B_1=Play_Add(G_1, N, B, U, C_Val,Path_E)
 		G_1=Play_Remove(G_1,Path_E,U,C_Val,B_1)
 
 
 
-	print sorted(G.degree_iter(),key=itemgetter(1),reverse=True)
-	print sorted(G_1.degree_iter(),key=itemgetter(1),reverse=True)
+	print list(G.degree(N).values())
+	print list(G_1.degree(N).values())
 
 
 
