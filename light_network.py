@@ -11,7 +11,11 @@ from operator import itemgetter
 """============================================"""
 
 """"
-
+TODO:
+	After removing edge check the changes in utility of i
+	Relation of removed link to the channel
+	Effect of transaction fee
+	
 Assumption:
 No node can send transactions worth more than his total bitcoins.
 """
@@ -111,14 +115,16 @@ def Check_Paths(G,N,D):
 def Channel_Val_Util(G,N,E,D,f,D_NP):
 	G_temp=G.copy()
 	C_Val=np.zeros((len(N),len(N),5))
-	U=np.zeros((len(N),len(N)))
 	P=np.zeros((len(N),len(N)))
 	P=P.tolist()
 	for i in N:
 		for j in N:
 			P[i][j]=[]
-			if i!=j:
-				G_temp.add_edge(i, j)
+			edge_flag=0
+			if i!=j: 
+				if G_temp.has_edge(i,j)==False:
+					edge_flag=1
+					G_temp.add_edge(i, j)
 				for k in D_NP:
 					try:
 						l=nx.shortest_path(G_temp,k[0], k[1])
@@ -126,6 +132,7 @@ def Channel_Val_Util(G,N,E,D,f,D_NP):
 							C_Val[i][j][0]=C_Val[i][j][0]+D[k[0]][k[1]]
 						elif j==k[1]:
 							C_Val[i][j][1]=C_Val[i][j][1]+D[k[0]][k[1]]
+
 						elif i in l and j in l:
 							
 							C_Val[i][j][2]=C_Val[i][j][2]+D[k[0]][k[1]]
@@ -133,18 +140,36 @@ def Channel_Val_Util(G,N,E,D,f,D_NP):
 							C_Val[i][j][4]=C_Val[i][j][4]+len(l)
 							P[i][j].append(l)
 							#print P[i][j]
-						D_NP.remove(k)
+						#D_NP.remove(k)
 
 					except:
 						continue
+				if edge_flag==1:
+					G_temp.remove_edge(i, j)
 				
-				U[i,j]= C_Val[i][j][3]-(C_Val[i][j][4])+C_Val[i][j][0]+(len(G.neighbors(j)) if C_Val[i][j][0]>0 else 0)
+
+
+				
+				
 
 		
 
 	LOG.info('Channel Value Calculated')
-	return C_Val,U,P
+	return C_Val,P
 	
+
+def normalized_utility(C_Val):
+	U=np.zeros((len(N),len(N)))
+	C_Val_temp= np.copy(C_Val)
+	for i in N:
+		for j in N:
+			C_Val_temp[i][j][3]=C_Val[i][j][3]/ (np.amax(C_Val[:][:][3]) if np.amax(C_Val[:][:][3])!=0 else 1)
+			C_Val_temp[i][j][4]=C_Val[i][j][4]/ (np.amax(C_Val[:][:][4]) if np.amax(C_Val[:][:][4])!=0 else 1)
+			C_Val_temp[i][j][0]=C_Val[i][j][0]/ (np.amax(C_Val[:][:][0]) if np.amax(C_Val[:][:][0])!=0 else 1)
+			neighbors= len(G.neighbors(j))/len(N)
+			U[i,j]= C_Val_temp[i][j][3]-(C_Val_temp[i][j][4])+C_Val[i][j][0]+neighbors 
+
+	return U
 
 
 def Play_Add(G,N,B,U,C_Val,Path_E):
@@ -155,9 +180,10 @@ def Play_Add(G,N,B,U,C_Val,Path_E):
 			m=0
 			while(B[i]>0 and m<NUMBER_OF_NODES):
 				j= U[i,:].tolist().index(max_u[m])
+				#print j
 				cost=C_Val[i][j][0]+C_Val[i][j][2]
 				if U[i,j]>0 and cost<B[i]:
-					if Path_E[i][j]==[]:
+					if Path_E[i][j]==['hahahahaha']:
 						print i,j,C_Val[i][j][3],(C_Val[i][j][4]),C_Val[i][j][0],len(G.neighbors(j)),U[i,j]
 					G.add_edge(i, j)
 					B[i]=B[i]-cost
@@ -177,6 +203,8 @@ def Play_Remove(G,Path_E,U,C_Val,B):
 			if C_Val[j][i][1]==0 and cost > B[i]:
 				G.remove_edge(j, i)
 				B[j]+cost
+			elif cost < B[i]:
+				B[i]=B[i]-cost
 
 	LOG.info('Remove Played')
 	return G
@@ -200,16 +228,19 @@ if __name__ == '__main__':
 		r=r+1
 		E=G_1.edges()
 		D_NP= Check_Paths(G_1, N, D)
-		C_Val,U,Path_E=Channel_Val_Util(G_1, N, G_1.edges(), D,f, D_NP)
+		C_Val,Path_E=Channel_Val_Util(G_1, N, G_1.edges(), D,f, D_NP)
+		U=normalized_utility(C_Val)
 		G_1,B_1=Play_Add(G_1, N, B, U, C_Val,Path_E)
 		G_1=Play_Remove(G_1,Path_E,U,C_Val,B_1)
 
 
 
-	print list(G.degree(N).values())
-	print list(G_1.degree(N).values())
+	print G.in_degree(N)
+	print G_1.in_degree(N)
+	print U[:,0]
 
-
+	nx.write_gexf(G, "G.gexf")
+	nx.write_gexf(G_1, "G_1.gexf")
 
 	f, (ax1, ax2) = plt.subplots(1, 2)
 	plt.figure(1)
