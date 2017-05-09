@@ -33,10 +33,10 @@ LOG.addHandler(hdlr)
 LOG.setLevel(logging.INFO)
 
 
-NUMBER_OF_NODES = 50
+NUMBER_OF_NODES = 100
 PPROB_OF_EDGE = 0.01  # very low otherwise there will be always path
-PER_NODE_TRANSACS = 50
-MAX_BITCOINS = 20
+PER_NODE_TRANSACS = 25
+MAX_BITCOINS = 100
 SEED = 1234  # random graph seed to make sure same network is generated each time
 G = None  # Given Directed Graph
 E = None  # Edges [(u,v)]
@@ -376,12 +376,12 @@ if __name__ == '__main__':
 		C_Val, Path_E = Channel_Val_Util(G_1, N, G_1.edges(), D, f, D_NP)
 		U = normalized_utility(C_Val)
 		G_1, B_1 = Play_Add(G_1, N, B, U, C_Val, Path_E,D)
-		G_1, B_1 = Play_Remove(G_1, Path_E, U, C_Val, B_1)
-		G_1, B_1 = Optimize_Add(G_1, N, B_1, U, C_Val, Path_E)
+		#G_1, B_1 = Play_Remove(G_1, Path_E, U, C_Val, B_1)
+		#G_1, B_1 = Optimize_Add(G_1, N, B_1, U, C_Val, Path_E)
 
 
 	nx.write_gexf(G, "G.gexf")
-	nx.write_gexf(G_1, "G_1.gexf")
+	nx.write_gexf(G_1, "G_1_selfish.gexf")
 
 	f, (ax1, ax2) = plt.subplots(1, 2)
 	plt.figure(1)
