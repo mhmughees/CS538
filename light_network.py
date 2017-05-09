@@ -33,10 +33,10 @@ LOG.addHandler(hdlr)
 LOG.setLevel(logging.INFO)
 
 
-NUMBER_OF_NODES = 100
+NUMBER_OF_NODES = 50
 PPROB_OF_EDGE = 0.01  # very low otherwise there will be always path
-PER_NODE_TRANSACS = 100
-MAX_BITCOINS = 50
+PER_NODE_TRANSACS = 50
+MAX_BITCOINS = 20
 SEED = 1234  # random graph seed to make sure same network is generated each time
 G = None  # Given Directed Graph
 E = None  # Edges [(u,v)]
@@ -246,23 +246,74 @@ def Play_Add(G, N, B, U, C_Val, Path_E, D):
 	return G, B
 
 
+def Play_Add_backup(G, N, B, U, C_Val, Path_E, D):
+	E= nx.all_pairs_node_connectivity(G)
+	for i in N:
+		max_u = np.sort(U[i, :])
+		max_u = max_u[::-1]
+		# print max_u
+		m = 0
+		while(B[i] > 0 and m < NUMBER_OF_NODES and chk_conn(E,i)):
+			j = U[i, :].tolist().index(max_u[m])
+			# print j
+			cost = C_Val[i][j][0] + C_Val[i][j][2]
+			if U[i, j] > 0 and cost < B[i] and [i, j] not in N_warn:
+				G.add_edge(i, j)
+				B[i] = B[i] - cost
+			m = m + 1
+
+	LOG.info('Add Played')
+	return G, B
+
 def Play_Remove(G, Path_E, U, C_Val, B):
 
 	for i in N:
 		if i not in range(10, 13):
 			pred = G.predecessors(i)
 			m = 0
-
 			for j in pred:
-				cost = C_Val[j][i][0] + C_Val[j][i][2]
+				cost_i = C_Val[j][i][0] + C_Val[j][i][2]
 				if C_Val[j][i][1] == 0 and cost > B[i]:
 					G.remove_edge(j, i)
 					N_warn.append([j,i])
 					B[j] = B[j] + cost
 				elif C_Val[j][i][1] != 0:
-					B[i] = B[i] + C_Val[j][i][1]
+					B[i] = B[i] + C_Val[j][i][1] #remove this 
+				elif U[j][i]<0:
+					G.remove_edge(j, i)
+					B[j] = B[j] + cost
+					print "hiu"
 				elif cost < B[i]:
-					B[i] = B[i] - cost
+					B[i] = B[i] - cost_i
+				m = m + 1
+
+	LOG.info('Remove Played')
+	return G, B
+
+
+
+def Play_Remove_backup(G, Path_E, U, C_Val, B):
+
+	for i in N:
+		if i not in range(10, 13):
+			pred = G.predecessors(i)
+			m = 0
+			for j in pred:
+				cost_i = C_Val[j][i][0] + C_Val[j][i][2]
+				cost_j = C_Val[j][i][2]
+				if C_Val[j][i][1] == 0 and cost > B[i]:
+					G.remove_edge(j, i)
+					N_warn.append([j,i])
+					B[j] = B[j] + cost
+				elif C_Val[j][i][1] != 0:
+					B[i] = B[i] + C_Val[j][i][1] #remove this 
+				elif U[j][i]<0:
+					G.remove_edge(j, i)
+					B[j] = B[j] + cost
+					print "hiu"
+				elif cost < B[i]:
+					B[i] = B[i] - cost_i
+					B[j] = B[j] - cost_j
 				m = m + 1
 
 	LOG.info('Remove Played')
@@ -324,8 +375,8 @@ if __name__ == '__main__':
 		C_Val, Path_E = Channel_Val_Util(G_1, N, G_1.edges(), D, f, D_NP)
 		U = normalized_utility(C_Val)
 		G_1, B_1 = Play_Add(G_1, N, B, U, C_Val, Path_E,D)
-		G_1, B_1 = Play_Remove(G_1, Path_E, U, C_Val, B_1)
-		G_1, B_1 = Optimize_Add(G_1, N, B_1, U, C_Val, Path_E)
+		#G_1, B_1 = Play_Remove(G_1, Path_E, U, C_Val, B_1)
+		#G_1, B_1 = Optimize_Add(G_1, N, B_1, U, C_Val, Path_E)
 
 
 	nx.write_gexf(G, "G.gexf")
