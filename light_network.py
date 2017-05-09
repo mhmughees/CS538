@@ -349,6 +349,31 @@ def Optimize_Add(G, N, B, U, C_Val, Path_E):
 	return G, B
 
 
+def Calculate_Trans(G,N,D):
+	No=[]
+	Total=[]
+	for i in N:
+		for j in N:
+			
+			if D[i][j]>0:
+				for path in nx.all_simple_paths(G, source=i, target=j):
+					chk=0
+					cost = C_Val[i][j][0] + C_Val[i][j][2]
+					for x in path:
+						if x != path[0] and x!= path[len(path)-1]:
+							if B[x]<cost:
+								chk=1
+								break
+						
+				if chk==0:
+					No.append(D[i][j])
+				Total.append(D[i][j])
+	print len(No)
+	print len(Total)
+
+					
+
+
 
 
 
@@ -379,9 +404,11 @@ if __name__ == '__main__':
 		#G_1, B_1 = Play_Remove(G_1, Path_E, U, C_Val, B_1)
 		#G_1, B_1 = Optimize_Add(G_1, N, B_1, U, C_Val, Path_E)
 
-
+	
 	nx.write_gexf(G, "G.gexf")
 	nx.write_gexf(G_1, "G_1_selfish.gexf")
+	print 'done'
+	Calculate_Trans(G_1, N, D)
 
 	f, (ax1, ax2) = plt.subplots(1, 2)
 	plt.figure(1)
