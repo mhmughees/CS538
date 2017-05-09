@@ -48,6 +48,7 @@ D_NP = None  # Number of Transaction which have no path [list]
 C_Val = None  # Channel Value [src Fij, dst Fij, f, z]
 Path_E = None
 N_warn = []
+New_Eds=[]
 
 
 def Init():
@@ -227,6 +228,7 @@ def chk_conn(E,i):
 
 
 def Play_Add(G, N, B, U, C_Val, Path_E, D):
+	New_Eds=[]
 	E= nx.all_pairs_node_connectivity(G)
 	for i in N:
 		max_u = np.sort(U[i, :])
@@ -240,6 +242,7 @@ def Play_Add(G, N, B, U, C_Val, Path_E, D):
 			if U[i, j] > 0 and cost < B[i] and [i, j] not in N_warn:
 				G.add_edge(i, j)
 				B[i] = B[i] - cost
+				New_Eds.append([i,j])
 			m = m + 1
 
 	LOG.info('Add Played')
@@ -267,25 +270,23 @@ def Play_Add_backup(G, N, B, U, C_Val, Path_E, D):
 
 def Play_Remove(G, Path_E, U, C_Val, B):
 
-	for i in N:
-		if i not in range(10, 13):
-			pred = G.predecessors(i)
-			m = 0
-			for j in pred:
-				cost_i = C_Val[j][i][0] + C_Val[j][i][2]
-				if C_Val[j][i][1] == 0 and cost > B[i]:
-					G.remove_edge(j, i)
-					N_warn.append([j,i])
-					B[j] = B[j] + cost
-				elif C_Val[j][i][1] != 0:
-					B[i] = B[i] + C_Val[j][i][1] #remove this 
-				elif U[j][i]<0:
-					G.remove_edge(j, i)
-					B[j] = B[j] + cost
-					print "hiu"
-				elif cost < B[i]:
-					B[i] = B[i] - cost_i
-				m = m + 1
+	for e in New_Eds:
+			 	i=e[0]
+			 	j=e[1]
+			 	cost_j = C_Val[i][j][0] + C_Val[i][j][2]
+				if C_Val[i][j][1] == 0 and cost_j > B[j]:
+					G.remove_edge(i, j)
+					N_warn.append([i,j])
+					B[i] = B[i] + cost_j
+				elif U[i][j]<0:
+					try:
+						G.remove_edge(i,j)
+						B[i] = B[i] + cost_j
+					except:
+						continue
+				elif cost < B[j]:
+					B[j] = B[j] - cost_j
+				
 
 	LOG.info('Remove Played')
 	return G, B
@@ -375,8 +376,8 @@ if __name__ == '__main__':
 		C_Val, Path_E = Channel_Val_Util(G_1, N, G_1.edges(), D, f, D_NP)
 		U = normalized_utility(C_Val)
 		G_1, B_1 = Play_Add(G_1, N, B, U, C_Val, Path_E,D)
-		#G_1, B_1 = Play_Remove(G_1, Path_E, U, C_Val, B_1)
-		#G_1, B_1 = Optimize_Add(G_1, N, B_1, U, C_Val, Path_E)
+		G_1, B_1 = Play_Remove(G_1, Path_E, U, C_Val, B_1)
+		G_1, B_1 = Optimize_Add(G_1, N, B_1, U, C_Val, Path_E)
 
 
 	nx.write_gexf(G, "G.gexf")
